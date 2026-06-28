@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ibm-zero-trust-scrubber
+  labels:
+    app: zero-trust-scrubber
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: zero-trust-scrubber
+  template:
+    metadata:
+      labels:
+        app: zero-trust-scrubber
+    spec:
+      containers:
+      - name: scrubber
+        image: nizar/ibm-zero-trust-api:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SCRUBBER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: scrubber-secrets
+              key: api-key
+        - name: IBM_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: watsonx-secrets
+              key: ibm-api-key
+        - name: IBM_PROJECT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: watsonx-config
+              key: project-id
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+          requests:
+            cpu: "250m"
+            memory: "128Mi"
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zero-trust-scrubber-service
+spec:
+  selector:
+    app: zero-trust-scrubber
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP
