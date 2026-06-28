@@ -1,7 +1,1 @@
-*.exe
-*.bin
-go.sum
-__pycache__/
-*.pyc
-venv/
-.env
+*
